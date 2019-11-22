@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import math
 import os
+import copy
 
 def getValueCountLookup(dataFrame, attributeName):
     total = 0
@@ -129,29 +130,49 @@ def displayPath(parentFeature, linkOutcome, childFeature):
         displayParentFeature = 'root' if (parentFeature is None) else parentFeature
         print(f'{displayParentFeature} -- {linkOutcome} --> {childFeature}')
 
+def displayPathDecisionList(parentFeature, decisionList):
+
+    first = decisionList[0]
+
+    if (first['outcome'] is None):
+        displayPath(parentFeature, None, first['decision'])
+    else:
+        for decision in decisionList:
+            outcome = decision['outcome']
+            decision = decision['decision']
+            displayPath(parentFeature, outcome, decision)
+
 def isDecisionable(df, decisionAttribute, feature, outcomes):
-    status = [False, '']
+    status = [False, None]
 
     uniqueCount = df[decisionAttribute].nunique()
     if (uniqueCount == 1):
         # this outcome will result in same decision
         decision = df[decisionAttribute].iloc[0]
-        status = [True, [{'' : decision}]]
+        status = [True, [{'outcome' : None, 'decision' : decision}]]
     else:
-        isDecisionableOutcomes = True
-        decisionList = []
-        for outcome in outcomes:
-            subDf = df.query(f"{feature} == '{outcome}'")
-            subUniqueCount = subDf[decisionAttribute].nunique()
-            if (subUniqueCount > 1):
-                isDecisionableOutcomes = False
-                break
-            else:
-                decision = subDf[decisionAttribute].iloc[0]
-                decisionList.append({'outcome' : outcome, 'decision' : decision})
-        if (isDecisionableOutcomes):
-            status = [True, decisionList]
-    
+        if feature is not None and outcomes is not None:
+            isDecisionableOutcomes = True
+            decisionList = []
+            for outcome in outcomes:
+                if (str(outcome) == 'True' or str(outcome) == 'False'):
+                    subDf = df.query(f"{feature} == {outcome}")
+                else:
+                    subDf = df.query(f"{feature} == '{outcome}'")
+                subUniqueCount = subDf[decisionAttribute].nunique()
+                if (subUniqueCount > 1):
+                    isDecisionableOutcomes = False
+                    break
+                elif (subUniqueCount == 1):
+                    # print(f'test {feature}, {subUniqueCount}, {outcome}, {outcomes}')
+                    decision = subDf[decisionAttribute].iloc[0]
+                    decisionList.append({'outcome' : outcome, 'decision' : decision})
+                else:
+                    print('subDf is empty')
+            # for outcome in outcomes:
+            if (isDecisionableOutcomes):
+                status = [True, decisionList]
+        # if feature is not None and outcomes is not None:
     return status
 
 def processID3(df, fList, decisionAttribute, feature, outcomes):
@@ -170,40 +191,40 @@ def processID3(df, fList, decisionAttribute, feature, outcomes):
                 # print(f'{displayFeature} --> {maxItemFeature}')
                 displayPath(feature, None, maxItemFeature)
                 maxItemOutcomes = toStringList(np.unique(subDf[maxItemFeature].to_numpy(), return_counts=False))
-                fList.remove(maxItemFeature)
+
+                cfList = copy.deepcopy(fList)
+                cfList.remove(maxItemFeature)
                 # print(fList)
 
-                processID3(subDf, fList, decisionAttribute, maxItemFeature, maxItemOutcomes)
+                processID3(subDf, cfList, decisionAttribute, maxItemFeature, maxItemOutcomes)
         else:
-            for outcome in outcomes:
-                # print(f"{feature} == '{outcome}'")
-                subDf = df.query(f"{feature} == '{outcome}'")
-            
-                isDecision = isDecisionable(subDf, decisionAttribute)
-                if (isDecision[0]):
-                    # this outcome will result in same decision
-                    decision = isDecision[1]
-                    # print(f'{feature} -- {outcome} --> {decision}')
-                    displayPath(feature, outcome, decision)
-                else:
-                    igList = computeInformationGain(subDf, decisionAttribute, fList)
-                    if (len(igList.items()) > 0):
-                        maxItem = findMax(igList)
-                        maxItemFeature = maxItem[0]
-                        # displayFeature = 'root' if (feature is None) else feature
-                        # print(f'{displayFeature} -- {outcome} --> {maxItemFeature}')
-                        displayPath(feature, outcome, maxItemFeature)
-                        maxItemOutcomes = toStringList(np.unique(subDf[maxItemFeature].to_numpy(), return_counts=False))
-                        fList.remove(maxItemFeature)
-                    
-                        isDecision = isDecisionable(subDf, decisionAttribute)
-                        if (isDecision[0]):
-                            decision = isDecision[1]
-                            fList = []
-                            displayPath(maxItemFeature, None, decision)
-                        else:
-                            processID3(subDf, fList, decisionAttribute, maxItemFeature, maxItemOutcomes)
-                # if (uniqueCount == 1):
+
+            isDecision0 = isDecisionable(df, decisionAttribute, feature, outcomes)
+            if (isDecision0[0]):
+                displayPathDecisionList(feature, isDecision0[1])
+            else:
+                for outcome in outcomes:
+                    # print(f"{feature} == '{outcome}'")
+                    subDf = df.query(f"{feature} == '{outcome}'")
+                
+                    isDecision1 = isDecisionable(subDf, decisionAttribute, None, None)
+                    if (isDecision1[0]):
+                        displayPath(feature, outcome, isDecision1[1][0]['decision'])
+                    else:
+                        cfList = copy.deepcopy(fList)
+                        igList = computeInformationGain(subDf, decisionAttribute, cfList)
+                        if (len(igList.items()) > 0):
+                            maxItem = findMax(igList)
+                            maxItemFeature = maxItem[0]
+                            # displayFeature = 'root' if (feature is None) else feature
+                            # print(f'{displayFeature} -- {outcome} --> {maxItemFeature}')
+                            displayPath(feature, outcome, maxItemFeature)
+                            maxItemOutcomes = toStringList(np.unique(subDf[maxItemFeature].to_numpy(), return_counts=False))
+                            cfList.remove(maxItemFeature)
+                            processID3(subDf, cfList, decisionAttribute, maxItemFeature, maxItemOutcomes)
+                    # if (isDecision1[0]):
+                # for outcome in outcomes:
+            # if (isDecision0[0]):
         # if (feature is None):
     else:
         if (len(fList) == 1):
