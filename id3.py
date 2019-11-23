@@ -25,9 +25,15 @@ def entropy(valueCountLookup):
     lookup = valueCountLookup['lookup']
     total = valueCountLookup['total']
 
+    entropySum = ''
     for key in lookup:
         px = lookup[key]/total
         entropy -= px * math.log(px, 2)
+
+        print(f"p = {key}/total = {lookup[key]}/{total} = {px}")
+        entropySum += f" - {lookup[key]}/{total} * math.log({lookup[key]}/{total}, 2)"
+    
+    print(f"entropy = {entropySum} = {entropy}")
     return entropy
 
 def join(arr, delim):
@@ -70,12 +76,18 @@ def entropyWrt(lookupItem):
     total = int(lookupItem['total'])
     lookup = lookupItem['list']
 
+    entropySum = ''
     for i in lookup:
         # attribValue = i['listkey'][0]
         count = int(i['count'])
         
         p = count/total
         entropy -= p * math.log(p, 2)
+
+        entropySum += f" - {count}/{total} * math.log({count}/{total}, 2)"
+    
+    print(f"entropy = {entropySum} = {entropy}")
+
     return entropy
 
 def findMax(lookupList):
@@ -99,6 +111,7 @@ def computeInformationGain(df1, decisionAttribute, fList):
 
     if (totalEntropy == 0.0):
         informationGain = 0.0
+        print("informationGain = 0.0")
     else:
         for feature in fList:
             fm = df1[feature].to_numpy()
@@ -107,12 +120,14 @@ def computeInformationGain(df1, decisionAttribute, fList):
             m = df1[[feature, decisionAttribute]].to_numpy()
             dict = unique(m)
 
+            outcomeSumMessage = ''
             outcomeSummation = 0.0
             for outcome in featureOutcomes:
                 li = getLookupItem(dict, outcome)
                 pOutcome = int(li['total'])/rowCount
                 e = entropyWrt(li)
                 outcomeSummation -= pOutcome * e
+                outcomeSumMessage += f'pOutcome * e'
                 # print(e)
 
             informationGain = totalEntropy + outcomeSummation
@@ -240,6 +255,8 @@ def processID3(df, fList, decisionAttribute, feature, outcomes):
 
 os.chdir('C:/temp/cpsc483proj1a')
 
+# decisionAttribute = 'ACTION'
+# df = pd.read_csv("project_1.csv")
 decisionAttribute = 'play'
 df = pd.read_csv('tennis.csv')
 fList = getFeatureList(df.axes[1], decisionAttribute)
