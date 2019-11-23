@@ -127,10 +127,11 @@ def computeInformationGain(df1, decisionAttribute, fList):
                 pOutcome = int(li['total'])/rowCount
                 e = entropyWrt(li)
                 outcomeSummation -= pOutcome * e
-                outcomeSumMessage += f'pOutcome * e'
+                outcomeSumMessage += f' - {pOutcome} * {e}'
                 # print(e)
 
             informationGain = totalEntropy + outcomeSummation
+            print(f"informationGain = {outcomeSumMessage} = {informationGain}")
             igList.update({ feature : informationGain})
             # print(feature + ': ' + str(informationGain))
 
