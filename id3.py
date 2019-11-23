@@ -256,10 +256,10 @@ def processID3(df, fList, decisionAttribute, feature, outcomes):
 
 os.chdir('C:/temp/cpsc483proj1a')
 
-# decisionAttribute = 'ACTION'
-# df = pd.read_csv("project_1.csv")
-decisionAttribute = 'play'
-df = pd.read_csv('tennis.csv')
+decisionAttribute = 'ACTION'
+df = pd.read_csv("project_1.csv")
+# decisionAttribute = 'play'
+# df = pd.read_csv('tennis.csv')
 fList = getFeatureList(df.axes[1], decisionAttribute)
 
 processID3(df, fList, decisionAttribute, None, None)

@@ -1,0 +1,4 @@
+
+root --> VOTES
+VOTES -- no --> force-into
+VOTES -- yes --> leave-alone
